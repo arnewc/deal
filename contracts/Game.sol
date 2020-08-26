@@ -85,10 +85,11 @@ contract Game is GameHelpers
         atState(_index, State.Verify)
         public returns (bool, address)
     {
+		Instance memory instance = data[_index];
         uint alice_card_decrypted =
-            Math.expmod(deck[data[_index].alice_index], data[_index].alice_secret, N);
+            Math.expmod(instance.cards[instance.alice_index], instance.alice_secret, N);
         uint bob_card_decrypted =
-            Math.expmod(data[_index].bob_card, data[_index].bob_secret, N);
+            Math.expmod(instance.bob_card, instance.bob_secret, N);
 
         bool verify_alice = is_card_in_deck(alice_card_decrypted);
         bool verify_bob = is_card_in_deck(bob_card_decrypted);
@@ -97,17 +98,19 @@ contract Game is GameHelpers
         data[_index].state = State.Done;
         emit Play(msg.sender, _index, State.Done);
 
-        if (!verify_alice && !verify_bob)
-            return (false, address(0));
-        if (!verify_alice)
-            return (true, data[_index].bob);
-        if (!verify_bob)
-            return (true, data[_index].bob);
+        if (!verify_alice || !verify_bob)
+		{
+			emit Winner(_index, false, false);
+			return (false, address(0));
+		}
+
+		bool isAlice = alice_card_decrypted > bob_card_decrypted;
+		emit Winner(_index, true, isAlice);
 
         /* Picking a winner based on who has the "largest hand" */
         return (
                 true,
-                alice_card_decrypted > bob_card_decrypted ? data[_index].alice : data[_index].bob
+				isAlice ? data[_index].alice : data[_index].bob
         );
     }
 }

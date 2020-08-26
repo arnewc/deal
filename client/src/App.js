@@ -1,43 +1,67 @@
 import React, { Component } from "react";
 import Game from "./contracts/Game.json";
 import getWeb3 from "./getWeb3";
-import {K, L, N, deck, generate_shuffled_deck} from "./crypto";
-import {Button} from 'react-bootstrap';
+import {Button, Container, Row, Col, Form, Table, InputGroup} from 'react-bootstrap';
 import {EventTable} from './Events.js';
+import {WinnerTable} from './Winner.js';
+import {CommitAlice, PlayAlice, RevealAlice, Verify} from './Alice.js';
+import {CommitBob, PlayBob, RevealBob} from './Bob.js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 // import "./App.css";
 
 class App extends Component {
-    state = { storageValue: 0, web3: null, accounts: null,  game: null, N: 5, index: 100, _index: 0, eventData: []};
+    state = {
+		web3: null,
+		accounts: null,
+		game: null,
+		index: 0,
+		eventData: [],
+		winnerData: [],
+	};
+
+	decodeState(_state) {
+		const states = [
+			"Commit Alice", "Commit Bob", "Play Bob", "Play Alice", "Verify Alice", "Verify Bob", "Verify", "Done"
+		];
+
+		return states[_state];
+	}
 
 
     componentDidMount = async () => {
         try {
-            // Get network provider and web3 instance.
-            // Use web3 to get the user's accounts.
             const web3 = await getWeb3();
-
             const accounts = await web3.eth.getAccounts();
-
-            // Get the contract instance.
             const networkId = await web3.eth.net.getId();
-
             const gameDeployedNetwork = Game.networks[networkId];
             const gameInstance = new web3.eth.Contract(
                 Game.abi,
                 gameDeployedNetwork && gameDeployedNetwork.address,
             );
 
+			// Initialize elements in localStorage if it doesn't exist.
+			const indexes = localStorage.getItem("indexes");
+			if (!indexes)
+				localStorage.setItem("indexes", JSON.stringify([]));
+			const data = localStorage.getItem("data");
+			if (!data)
+				localStorage.setItem("data", JSON.stringify({}));
+
+			// Everytime we start, we need to check for the current status. Maybe one of the state
+			// variable would be index and state of what's going on right now.
+			var latestBlock = web3.eth.blockNumber;
+
+			console.log("hello");
+
 			gameInstance.events.Play({
-				// TODO write a filter
 				fromBlock: 0
 			}, function(error, result){
 				if(!error) {
 					const event = {
 						index: result.returnValues._index,
 						address: result.returnValues._address,
-						state: result.returnValues._state,
+						state: this.decodeState(result.returnValues._state),
 					};
 
 					this.setState(prevState => ({
@@ -50,6 +74,29 @@ class App extends Component {
 					console.log({error});
 				}
 			}.bind(this));
+
+			gameInstance.events.Winner({
+				fromBlock: 0
+			}, function(error, result){
+				console.log({error, result});
+				if(!error) {
+					const event = {
+						index: result.returnValues._index,
+						verified: result.returnValues.verified? "Yes": "No",
+						winner: result.returnValues.isAlice ? "Alice" : "Bob",
+					};
+
+					this.setState(prevState => ({
+						winnerData: [...prevState.winnerData, event]
+					}));
+
+				}
+				else {
+					console.log("Event did not emit");
+					console.log({error});
+				}
+			}.bind(this));
+
 
             this.setState({ web3, accounts, game: gameInstance, account: this.state.account}, this.runExample);
         } catch (error) {
@@ -83,19 +130,14 @@ class App extends Component {
     };
 
     activateLasers() {
-        console.log("Laser activated");
+        console.log
+("Laser activated");
     }
 
-    // First generate private information
-    commit_alice = async() => {
-        const {accounts, contract, game, web3} = this.state;
-		// TODO add a step to generate private information.
-		// TODO add functions to add them to localstorage
-        const cards = generate_shuffled_deck(K, N, deck);
-        const ret = await game.methods
-			  .commit_alice(cards.map(x => web3.utils.toHex(x.toString())))
-			  .send( {from: accounts[0]}, function(err, val) { });
-    }
+	// TODO Is it possible to take a parameter?
+	play_bob = async() => {
+		console.log(1);
+	}
 
 	handleGetIndex = async (event) => {
 		this.setState({_index: event.target.value});
@@ -107,39 +149,120 @@ class App extends Component {
 		console.log(instance);
 	}
 
-	handleSubmit(event) {
-		console.log('GetIndex was submitted with the value: ' + this.state.value);
-		event.preventDefault();
+	handleIndexInput = (e) => {
+		console.log(e);
+		this.setState({index: e.target.value});
+		console.log(this.state.index);
 	}
 
 
-    render() {
-		console.log(this.state.eventData);
+    render1() {
         if (!this.state.web3) {
             return <div>Loading Web3, accounts, and contract...</div>;
         }
 
-		const data = [{
-			index: 0,
-			address: 1,
-			state: 1,
-		},];
-
         return (
-                <div className="App">
+            <div className="App">
 
-                <h1>Deal! A trustless card game!</h1>
-                <div>The stored value is: {this.state.storageValue}</div>
-                <div>The value of N is: {this.state.N}</div>
-                <div>The index is: {this.state.index}</div>
-                <Button onClick={this.commit_alice}>commit_alice</Button>
+				<Container>
 
-				<EventTable data={this.state.eventData}/>
+					<Row>
+						<h1>Deal! A trustless card game!</h1>
+					</Row>
 
-            </div>
+
+					<Row>
+						<Col>
+							<CommitAlice web3={this.state.web3} accounts={this.state.accounts} game={this.state.game}/>
+						</Col>
+
+						<Col>
+							<Row>
+								<CommitBob web3={this.state.web3} accounts={this.state.accounts} game={this.state.game} index={this.state.index}/>
+							</Row>
+
+							<Row>
+								<Form.Group as={Row} controlId="seed">
+									<Form.Label column sm="2">
+										Seed
+									</Form.Label>
+									<Col sm="10">
+
+										<Form.Control type="number" placeholder="leave empty for random" onChange={this.handleIndexChange}/>
+									</Col>
+								</Form.Group>
+
+							</Row>
+						</Col>
+
+
+					</Row>
+
+					<Row>
+						You don't have anything to do now!
+					</Row>
+
+					<Row>
+						<PlayAlice web3={this.state.web3} accounts={this.state.accounts} game={this.state.game} index={this.state.index}/>
+					</Row>
+
+
+					<Row>
+						<EventTable data={this.state.eventData}/>
+					</Row>
+
+
+				</Container>
+			</div>
 
         );
     }
+
+	render() {
+
+		const {web3, accounts, index, game} = this.state;
+		return (
+			<body>
+				<Container>
+					<h1>Deal: A trustless cardgame!</h1>
+					<Form.Control type="number" placeholder="Index to interact with" onChange={this.handleIndexInput}/>
+					<Table bordered hover>
+						<thead>
+							<tr>
+								<th></th>
+								<th>Alice</th>
+								<th>Bob</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><b>Commit</b></td>
+								<td><CommitAlice web3={web3} accounts={accounts} game={game}/></td>
+								<td><CommitBob web3={web3} accounts={accounts} game={game} index={index}/></td>
+							</tr>
+
+							<tr>
+								<td><b>Play</b></td>
+								<td><PlayAlice web3={web3} accounts={accounts} game={game} index={index}/></td>
+								<td><PlayBob web3={web3} accounts={accounts} game={game} index={index}/></td>
+							</tr>
+
+							<tr>
+								<td><b>Reveal</b></td>
+								<td><RevealAlice web3={web3} accounts={accounts} game={game} index={index}/></td>
+								<td><RevealBob web3={web3} accounts={accounts} game={game} index={index}/></td>
+							</tr>
+						</tbody>
+					</Table>
+					<Verify web3={web3} accounts={accounts} game={game} index={index}/>
+					<EventTable data={this.state.eventData}/>
+					<WinnerTable data={this.state.winnerData}/>
+				</Container>
+			</body>
+		);
+
+
+	}
 }
 
 export default App;

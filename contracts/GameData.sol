@@ -32,8 +32,7 @@ abstract contract GameData
 {
     // The encoding of 2♠, ..., A♠, 2♥, ..., A♥, 2♦, ..., A♦, 2♣, ..., A♣
     uint[52] public deck;
-	// A 256 bit prime number
-    uint public constant N = 114229338781499300852999117797613317487529393292838994789209652886651289431457;
+    uint public constant N = 1030893141925860008499560888835674370998623848299590975192766715520279329390;
 
     mapping (uint => Instance) data;
     uint public index = 0;

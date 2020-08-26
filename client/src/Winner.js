@@ -2,8 +2,7 @@ import React from "react";
 import { Table } from 'react-bootstrap';
 import { useTable } from "react-table";
 
-// Creates the table for events
-export function EventTable({data}) {
+export function WinnerTable({data}) {
 	const columns = React.useMemo(
 		() => [
 			{
@@ -11,12 +10,12 @@ export function EventTable({data}) {
 				accessor: 'index',
 			},
 			{
-				Header: 'Address',
-				accessor: 'address',
+				Header: 'Verified',
+				accessor: 'verified',
 			},
 			{
-				Header: 'State',
-				accessor: 'state',
+				Header: 'Winner',
+				accessor: 'winner',
 			},
 		],
 		[]
@@ -42,7 +41,7 @@ export function EventTable({data}) {
 	// Render the UI for your table
 	return (
 		<>
-			<h4>Events corresponding to your games.</h4>
+			<h4>Leaderboard</h4>
 			<Table striped bordered hover {...getTableProps()}>
 				<thead>
 					{headerGroups.map(headerGroup => (
