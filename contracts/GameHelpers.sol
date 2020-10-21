@@ -64,24 +64,24 @@ abstract contract GameHelpers is GameData
 
     event Play(address _address, uint _index, State _state);
 
-	event Winner(uint _index, bool verified, bool isAlice);
+    event Winner(uint _index, bool verified, bool isAlice);
 
-	/// Finds a free spot to play, i.e., an instance whose state is waiting for bob to commit. The
-	/// seed is used to start the search.
-	function createMatch(uint seed) public view returns (uint _index)
-	{
-		require(index > 0, "Nobody has initiated play. Start as Alice.");
-		seed = seed % index;
+    /// Finds a free spot to play, i.e., an instance whose state is waiting for bob to commit. The
+    /// seed is used to start the search.
+    function createMatch(uint seed) public view returns (uint _index)
+    {
+        require(index > 0, "Nobody has initiated play. Start as Alice.");
+        seed = seed % index;
 
-		if (data[seed].state == State.Commit_Bob)
-			return seed;
+        if (data[seed].state == State.Commit_Bob)
+            return seed;
 
-		for (uint i = seed; i < seed; i = (i + 1) % seed)
-		{
-			if (data[i].state == State.Commit_Bob)
-				return i;
-		}
+        for (uint i = seed; i < seed; i = (i + 1) % seed)
+        {
+            if (data[i].state == State.Commit_Bob)
+                return i;
+        }
 
-		require(false, "There are no empty spots. Start as Alice.");
-	}
+        require(false, "There are no empty spots. Start as Alice.");
+    }
 }

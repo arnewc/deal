@@ -37,8 +37,7 @@ abstract contract GameData
     mapping (uint => Instance) data;
     uint public index = 0;
 
-    constructor()
-    {
+    constructor() {
         /* A card is a 51 decimal block from the golden ratio */
         deck[0] = 161803398874989484820458683436563811772030917980576;
         deck[1] = 286213544862270526046281890244970720720418939113748;
